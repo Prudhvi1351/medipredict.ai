@@ -1,279 +1,177 @@
 import os
-import pickle
 import streamlit as st
 from streamlit_option_menu import option_menu
+import sys
 
-# ── Page config ──────────────────────────────────────────────────
+# Add current directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import agents
+from agents.model_training_agent import load_and_evaluate
+from agents.resource_estimation_agent import estimate_resources
+
+# Set page configuration
 st.set_page_config(
-    page_title="Multiple Disease Prediction",
+    page_title="Autonomous Healthcare Assistant",
     layout="wide",
-    page_icon="🧑‍⚕️",
+    page_icon="🧑‍⚕️"
 )
 
-# ── Custom CSS (dark premium theme) ─────────────────────────────
+# ── Custom CSS ───────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .stApp { background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%); }
-
-.predict-card {
+.metric-card {
     background: linear-gradient(135deg, #1e1e3f, #2d2d5f);
     border: 1px solid #6c63ff44;
-    border-radius: 16px;
-    padding: 2rem;
-    margin-top: 1rem;
-    box-shadow: 0 8px 32px rgba(108,99,255,0.15);
-}
-
-.result-positive {
-    background: linear-gradient(135deg, #7f1d1d, #991b1b);
-    border: 1px solid #ef4444;
     border-radius: 12px;
-    padding: 1rem 1.5rem;
-    color: #fca5a5;
-    font-weight: 600;
-    font-size: 1.1rem;
+    padding: 1.2rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(108,99,255,0.1);
 }
-
-.result-negative {
-    background: linear-gradient(135deg, #14532d, #166534);
-    border: 1px solid #22c55e;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    color: #86efac;
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-div[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #12122a, #1a1a3e);
-    border-right: 1px solid #6c63ff33;
-}
-
-.stTextInput > div > div > input {
-    background: #1e1e3f;
-    border: 1px solid #6c63ff55;
-    border-radius: 8px;
-    color: white;
-}
-
-.stButton > button {
-    background: linear-gradient(135deg, #6c63ff, #a78bfa);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    padding: 0.6rem 2rem;
-    font-size: 1rem;
-    transition: all 0.2s ease;
-}
-
-.stButton > button:hover {
-    box-shadow: 0 4px 20px rgba(108,99,255,0.5);
-    transform: translateY(-2px);
-}
-
+.metric-val { font-size: 1.8rem; font-weight: 700; color: #a78bfa; }
+.metric-label { font-size: 0.8rem; color: #a0a0c0; text-transform: uppercase; }
 h1, h2, h3 { color: white !important; }
-p, label, .stTextInput label { color: #c8c8e0 !important; }
+.stSidebar { background: #12122a !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Load models ───────────────────────────────────────────────────
-working_dir = os.path.dirname(os.path.abspath(__file__))
+# ── Header ────────────────────────────────────────────────────────
+st.markdown("<h1 style='text-align: center; color: #6c63ff;'>🏥 MediPredict AI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #a0a0c0;'>Autonomous Healthcare Analytics & Resource Prediction System</p>", unsafe_allow_html=True)
 
-def load_model(filename):
-    path = os.path.join(working_dir, "saved_models", filename)
-    try:
-        with open(path, "rb") as f:
-            return pickle.load(f)
-    except Exception as e:
-        st.error(f"❌ Failed to load model `{filename}`: {e}")
-        return None
-
-diabetes_model      = load_model("diabetes_model.sav")
-heart_disease_model = load_model("heart_disease_model.sav")
-parkinsons_model    = load_model("parkinsons_model.sav")
-
-# ── Sidebar navigation ────────────────────────────────────────────
+# ── Navigation ───────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(
-        "<h2 style='color:#a78bfa; text-align:center;'>🏥 MediPredict</h2>",
-        unsafe_allow_html=True,
-    )
     selected = option_menu(
         "Disease Prediction",
         ["Diabetes Prediction", "Heart Disease Prediction", "Parkinsons Prediction"],
         menu_icon="hospital-fill",
         icons=["activity", "heart", "person"],
         default_index=0,
-        styles={
-            "container": {"background-color": "#12122a"},
-            "icon": {"color": "#a78bfa", "font-size": "18px"},
-            "nav-link": {"color": "#c8c8e0", "font-size": "15px"},
-            "nav-link-selected": {
-                "background": "linear-gradient(135deg,#6c63ff,#a78bfa)",
-                "color": "white",
-                "border-radius": "8px",
-            },
-        },
+        styles={"nav-link-selected": {"background-color": "#6c63ff"}}
     )
 
-# ── Helper ────────────────────────────────────────────────────────
-def show_result(positive: bool, pos_msg: str, neg_msg: str):
-    if positive:
-        st.markdown(f'<div class="result-positive">🔴 {pos_msg}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="result-negative">🟢 {neg_msg}</div>', unsafe_allow_html=True)
+# ── Disease Context Mapping ──────────────────────────────────────
+disease_map = {
+    "Diabetes Prediction": "diabetes",
+    "Heart Disease Prediction": "heart",
+    "Parkinsons Prediction": "parkinsons"
+}
+disease_key = disease_map[selected]
 
+# ── Load Model ───────────────────────────────────────────────────
+model_info = load_and_evaluate(disease_key)
+model = model_info["model"] if model_info else None
 
-def safe_floats(values):
-    try:
-        return [float(v) for v in values], None
-    except ValueError as e:
-        return None, f"Invalid input: {e}. Please enter numeric values only."
-
-
-# ══════════════════════════════════════════════════════════════════
-# Diabetes Prediction
-# ══════════════════════════════════════════════════════════════════
+# ── Display Logic ───────────────────────────────────────────────
 if selected == "Diabetes Prediction":
-    st.markdown(
-        "<h1>🩸 Diabetes Prediction</h1>"
-        "<p style='color:#a0a0c0;'>Enter patient vitals to predict diabetes risk using ML.</p>",
-        unsafe_allow_html=True,
-    )
-
-    with st.container():
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            Pregnancies           = st.text_input("Number of Pregnancies", placeholder="e.g. 2")
-            SkinThickness         = st.text_input("Skin Thickness (mm)", placeholder="e.g. 20")
-            DiabetesPedigreeFunction = st.text_input("Diabetes Pedigree Function", placeholder="e.g. 0.47")
-        with col2:
-            Glucose               = st.text_input("Glucose Level", placeholder="e.g. 120")
-            Insulin               = st.text_input("Insulin Level (mu U/ml)", placeholder="e.g. 80")
-            Age                   = st.text_input("Age", placeholder="e.g. 33")
-        with col3:
-            BloodPressure         = st.text_input("Blood Pressure (mm Hg)", placeholder="e.g. 70")
-            BMI                   = st.text_input("BMI value", placeholder="e.g. 28.1")
-
-    if st.button("🔍 Run Diabetes Test"):
-        if diabetes_model is None:
-            st.error("Model not loaded.")
-        else:
-            inputs = [Pregnancies, Glucose, BloodPressure, SkinThickness,
-                      Insulin, BMI, DiabetesPedigreeFunction, Age]
-            values, err = safe_floats(inputs)
-            if err:
-                st.warning(err)
-            else:
-                pred = diabetes_model.predict([values])
-                show_result(
-                    pred[0] == 1,
-                    "The person is diabetic.",
-                    "The person is not diabetic.",
-                )
-
-# ══════════════════════════════════════════════════════════════════
-# Heart Disease Prediction
-# ══════════════════════════════════════════════════════════════════
-elif selected == "Heart Disease Prediction":
-    st.markdown(
-        "<h1>❤️ Heart Disease Prediction</h1>"
-        "<p style='color:#a0a0c0;'>Enter patient cardiac data to predict heart disease risk.</p>",
-        unsafe_allow_html=True,
-    )
-
+    st.title("🩸 Diabetes Analytics")
     col1, col2, col3 = st.columns(3)
-    with col1:
-        age      = st.text_input("Age", placeholder="e.g. 55")
-        trestbps = st.text_input("Resting Blood Pressure", placeholder="e.g. 130")
-        restecg  = st.text_input("Resting ECG results (0/1/2)", placeholder="e.g. 0")
-        oldpeak  = st.text_input("ST Depression (exercise)", placeholder="e.g. 1.4")
-        thal     = st.text_input("Thal (0=normal; 1=fixed; 2=reversible)", placeholder="e.g. 2")
-    with col2:
-        sex      = st.text_input("Sex (1=male, 0=female)", placeholder="e.g. 1")
-        chol     = st.text_input("Serum Cholesterol (mg/dl)", placeholder="e.g. 250")
-        thalach  = st.text_input("Max Heart Rate Achieved", placeholder="e.g. 150")
-        slope    = st.text_input("Slope of Peak Exercise ST", placeholder="e.g. 1")
-    with col3:
-        cp       = st.text_input("Chest Pain Type (0-3)", placeholder="e.g. 2")
-        fbs      = st.text_input("Fasting Blood Sugar >120 mg/dl (1=True)", placeholder="e.g. 0")
-        exang    = st.text_input("Exercise Induced Angina (1=Yes)", placeholder="e.g. 0")
-        ca       = st.text_input("Major Vessels (0-3)", placeholder="e.g. 1")
+    with col1: Pregnancies = st.text_input('Number of Pregnancies', '0')
+    with col2: Glucose = st.text_input('Glucose Level', '120')
+    with col3: BloodPressure = st.text_input('Blood Pressure value', '70')
+    with col1: SkinThickness = st.text_input('Skin Thickness value', '20')
+    with col2: Insulin = st.text_input('Insulin Level', '80')
+    with col3: BMI = st.text_input('BMI value', '28.1')
+    with col1: DiabetesPedigreeFunction = st.text_input('Diabetes Pedigree Function', '0.47')
+    with col2: Age = st.text_input('Age of the Person', '33')
+    
+    inputs = [Pregnancies, Glucose, BloodPressure, SkinThickness, Insulin, BMI, DiabetesPedigreeFunction, Age]
 
-    if st.button("🔍 Run Heart Disease Test"):
-        if heart_disease_model is None:
-            st.error("Model not loaded.")
-        else:
-            inputs = [age, sex, cp, trestbps, chol, fbs, restecg,
-                      thalach, exang, oldpeak, slope, ca, thal]
-            values, err = safe_floats(inputs)
-            if err:
-                st.warning(err)
-            else:
-                pred = heart_disease_model.predict([values])
-                show_result(
-                    pred[0] == 1,
-                    "The person has heart disease.",
-                    "The person does not have heart disease.",
-                )
+elif selected == "Heart Disease Prediction":
+    st.title("❤️ Heart Disease Analytics")
+    col1, col2, col3 = st.columns(3)
+    with col1: age = st.text_input('Age', '55')
+    with col2: sex = st.text_input('Sex (1=M, 0=F)', '1')
+    with col3: cp = st.text_input('Chest Pain types (0-3)', '2')
+    with col1: trestbps = st.text_input('Resting BP', '130')
+    with col2: chol = st.text_input('Serum Cholestoral', '250')
+    with col3: fbs = st.text_input('Fasting Blood Sugar > 120 (1=T)', '0')
+    with col1: restecg = st.text_input('Resting ECG (0/1/2)', '0')
+    with col2: thalach = st.text_input('Max Heart Rate', '150')
+    with col3: exang = st.text_input('Exercise Induced Angina (1=Y)', '0')
+    with col1: oldpeak = st.text_input('ST depression', '1.4')
+    with col2: slope = st.text_input('Slope of ST segment', '1')
+    with col3: ca = st.text_input('Major vessels (0-3)', '0')
+    with col1: thal = st.text_input('thal (0-2)', '2')
+    
+    inputs = [age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal]
 
-# ══════════════════════════════════════════════════════════════════
-# Parkinson's Prediction
-# ══════════════════════════════════════════════════════════════════
 elif selected == "Parkinsons Prediction":
-    st.markdown(
-        "<h1>🧠 Parkinson's Disease Prediction</h1>"
-        "<p style='color:#a0a0c0;'>Enter voice measurement data to predict Parkinson's disease.</p>",
-        unsafe_allow_html=True,
-    )
-
+    st.title("🧠 Parkinson's Analytics")
     col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        fo             = st.text_input("MDVP:Fo (Hz)", placeholder="119.99")
-        RAP            = st.text_input("MDVP:RAP", placeholder="0.00370")
-        APQ3           = st.text_input("Shimmer:APQ3", placeholder="0.00830")
-        NHR            = st.text_input("NHR", placeholder="0.00997")
-        RPDE           = st.text_input("RPDE", placeholder="0.41")
-    with col2:
-        fhi            = st.text_input("MDVP:Fhi (Hz)", placeholder="157.30")
-        PPQ            = st.text_input("MDVP:PPQ", placeholder="0.00554")
-        APQ5           = st.text_input("Shimmer:APQ5", placeholder="0.01090")
-        HNR            = st.text_input("HNR", placeholder="21.03")
-        DFA            = st.text_input("DFA", placeholder="0.82")
-    with col3:
-        flo            = st.text_input("MDVP:Flo (Hz)", placeholder="74.99")
-        DDP            = st.text_input("Jitter:DDP", placeholder="0.01109")
-        APQ            = st.text_input("MDVP:APQ", placeholder="0.01457")
-        spread1        = st.text_input("spread1", placeholder="-4.81")
-        spread2        = st.text_input("spread2", placeholder="0.26")
-    with col4:
-        Jitter_percent = st.text_input("MDVP:Jitter (%)", placeholder="0.00370")
-        Shimmer        = st.text_input("MDVP:Shimmer", placeholder="0.02971")
-        DDA            = st.text_input("Shimmer:DDA", placeholder="0.02490")
-        D2             = st.text_input("D2", placeholder="2.30")
-    with col5:
-        Jitter_Abs     = st.text_input("MDVP:Jitter (Abs)", placeholder="0.00002")
-        Shimmer_dB     = st.text_input("MDVP:Shimmer (dB)", placeholder="0.28")
-        PPE            = st.text_input("PPE", placeholder="0.28")
+    with col1: fo = st.text_input('MDVP:Fo(Hz)', '119.9')
+    with col2: fhi = st.text_input('MDVP:Fhi(Hz)', '157.3')
+    with col3: flo = st.text_input('MDVP:Flo(Hz)', '74.9')
+    with col4: jp = st.text_input('Jitter(%)', '0.003')
+    with col5: ja = st.text_input('Jitter(Abs)', '0.00002')
+    # simplified for brevity in the sample code, using placeholders for others
+    with col1: rap = st.text_input('MDVP:RAP', '0.0037')
+    with col2: ppq = st.text_input('MDVP:PPQ', '0.0055')
+    with col3: ddp = st.text_input('Jitter:DDP', '0.011')
+    with col4: shim = st.text_input('MDVP:Shimmer', '0.029')
+    with col5: sdb = st.text_input('Shimmer(dB)', '0.28')
+    with col1: apq3 = st.text_input('Shimmer:APQ3', '0.008')
+    with col2: apq5 = st.text_input('Shimmer:APQ5', '0.010')
+    with col3: apq = st.text_input('MDVP:APQ', '0.014')
+    with col4: dda = st.text_input('Shimmer:DDA', '0.024')
+    with col5: nhr = st.text_input('NHR', '0.009')
+    with col1: hnr = st.text_input('HNR', '21.0')
+    with col2: rpde = st.text_input('RPDE', '0.41')
+    with col3: dfa = st.text_input('DFA', '0.82')
+    with col4: s1 = st.text_input('spread1', '-4.81')
+    with col5: s2 = st.text_input('spread2', '0.26')
+    with col1: d2 = st.text_input('D2', '2.3')
+    with col2: ppe = st.text_input('PPE', '0.28')
 
-    if st.button("🔍 Run Parkinson's Test"):
-        if parkinsons_model is None:
-            st.error("Model not loaded.")
-        else:
-            inputs = [fo, fhi, flo, Jitter_percent, Jitter_Abs,
-                      RAP, PPQ, DDP, Shimmer, Shimmer_dB, APQ3, APQ5,
-                      APQ, DDA, NHR, HNR, RPDE, DFA, spread1, spread2, D2, PPE]
-            values, err = safe_floats(inputs)
-            if err:
-                st.warning(err)
+    inputs = [fo, fhi, flo, jp, ja, rap, ppq, ddp, shim, sdb, apq3, apq5, apq, dda, nhr, hnr, rpde, dfa, s1, s2, d2, ppe]
+
+# ── Run Prediction & Resource Logic ──────────────────────────────
+if st.button(f"🔍 Run {selected} Analytics"):
+    if model is None:
+        st.error("Model not found!")
+    else:
+        try:
+            val_input = [float(x) for x in inputs]
+            prediction = model.predict([val_input])
+            
+            st.divider()
+            
+            if prediction[0] == 1:
+                st.error(f"🔴 Result: High Risk of {disease_key.capitalize()} Detected")
+                # Innovation: show resource estimates for 1 patient (scaled up if needed)
+                res = estimate_resources(1, disease_key)
+                
+                st.markdown("### 🏨 Resource Requirements (Innovation)")
+                c1, c2, c3, c4 = st.columns(4)
+                with c1: st.markdown(f"<div class='metric-card'><div class='metric-val'>{res['beds_needed']}</div><div class='metric-label'>Beds</div></div>", unsafe_allow_html=True)
+                with c2: st.markdown(f"<div class='metric-card'><div class='metric-val'>{res['doctors_needed']}</div><div class='metric-label'>Staff</div></div>", unsafe_allow_html=True)
+                with c3: st.markdown(f"<div class='metric-card'><div class='metric-val'>${res['estimated_cost']:,}</div><div class='metric-label'>Cost</div></div>", unsafe_allow_html=True)
+                with col3: st.markdown(f"<div class='metric-card'><div class='metric-val'>{res['treatment_days']}</div><div class='metric-label'>Days</div></div>", unsafe_allow_html=True)
             else:
-                pred = parkinsons_model.predict([values])
-                show_result(
-                    pred[0] == 1,
-                    "The person has Parkinson's disease.",
-                    "The person does not have Parkinson's disease.",
-                )
+                st.success(f"🟢 Result: No {disease_key.capitalize()} Detected")
+                
+        except Exception as e:
+            st.error(f"Error: {e}. Please check numeric inputs.")
+
+# ── Automated EDA Visualization ───────────────────────────────────
+st.divider()
+st.markdown("### 📈 Automated EDA (Pipeline Output)")
+col_eda1, col_eda2 = st.columns(2)
+eda_base = f"eda_outputs/{disease_key}"
+hist_p = f"{eda_base}/{disease_key}_distribution.png"
+heat_p = f"{eda_base}/{disease_key}_correlation_heatmap.png"
+
+with col_eda1:
+    if os.path.exists(hist_p):
+        st.image(hist_p, caption=f"{disease_key.capitalize()} Distribution")
+    else:
+        st.info("Run 'python main.py' to generate EDA plots.")
+
+with col_eda2:
+    if os.path.exists(heat_p):
+        st.image(heat_p, caption=f"{disease_key.capitalize()} Correlation")
+    else:
+        st.info("Run 'python main.py' to generate EDA plots.")
