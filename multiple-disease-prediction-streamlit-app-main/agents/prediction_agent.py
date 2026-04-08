@@ -13,15 +13,19 @@ def run_predictions(model_data: dict, X_test: pd.DataFrame, disease_type: str = 
     # Ensure X_test only contains the expected number of features
     # (Simple hack: standard datasets have 'Outcome' or 'target' at the end)
     features = X_test.copy()
-    if "Outcome" in features.columns: features.drop(columns=["Outcome"], inplace=True)
-    if "target" in features.columns: features.drop(columns=["target"], inplace=True)
-    if "status" in features.columns: features.drop(columns=["status"], inplace=True)
+    # For Parkinson's, drop the 'name' column and any engineered features
+    cols_to_drop = ["Outcome", "target", "status", "name", "Jitter_Shimmer_Ratio", "Glucose_BMI_Ratio", "BP_Level"]
+    for col in cols_to_drop:
+        if col in features.columns:
+            features.drop(columns=[col], inplace=True)
 
-    # For Parkinson's, drop the 'name' column if present
-    if "name" in features.columns: features.drop(columns=["name"], inplace=True)
-
-    # Convert to numpy and predict first 100 rows for the "pipeline" report
+    # Convert to numpy and predict first 100 rows
     data_to_predict = features.head(100).values
+    
+    # Debug: check shape
+    if disease_type == "parkinsons" and data_to_predict.shape[1] != 22:
+        print(f"[PredictionAgent] ⚠️ Parkinson's features: {data_to_predict.shape[1]} (Expect 22)")
+    
     predictions = model.predict(data_to_predict)
 
     at_risk_count = int(np.sum(predictions))

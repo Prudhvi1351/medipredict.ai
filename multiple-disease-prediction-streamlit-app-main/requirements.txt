@@ -2,3 +2,5 @@ numpy
 scikit-learn
 streamlit
 streamlit-option-menu
+matplotlib
+seaborn

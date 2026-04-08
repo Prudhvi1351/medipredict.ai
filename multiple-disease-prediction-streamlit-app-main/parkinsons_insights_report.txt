@@ -1,0 +1,27 @@
+
+╔══════════════════════════════════════════════════════════════════╗
+║        Autonomous Healthcare Insights: PARKINSONS         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+  Analysis Date   : 2026-04-08 16:52:27
+  Predictive Accuracy: 82.0%
+
+  ── PREDICTION RESULTS ───────────────────────────────────────────
+  Total Screened       : 100
+  Predicted High-Risk  : 78
+  Risk Prevalence     : 78.0%
+
+  ── RESOURCE PLANNING (Innovation) ───────────────────────────────
+  Estimated Patients   : 78
+  Hospital Beds Required: 16
+  Staffing Requirement : 3 Doctors/Specialists
+  Financial Impact    : $128,000 (USD)
+  Operational Duration : 160 Plan Days
+
+  ── CONCLUSIONS ──────────────────────────────────────────────────
+  • Immediate allocation of 16 beds is recommended for pending cases.
+  • Staff schedules should account for 3 specialists.
+  • Patient risk rate of 78.0% indicates a 
+    significant healthcare burden.
+
+══════════════════════════════════════════════════════════════════
