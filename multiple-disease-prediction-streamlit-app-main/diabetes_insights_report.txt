@@ -3,24 +3,24 @@
 ║        Autonomous Healthcare Insights: DIABETES           ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-  Analysis Date   : 2026-04-08 16:52:26
+  Analysis Date   : 2026-04-08 17:57:48
   Predictive Accuracy: 78.0%
 
   ── PREDICTION RESULTS ───────────────────────────────────────────
-  Total Screened       : 100
-  Predicted High-Risk  : 25
+  Total Screened       : 768
+  Predicted High-Risk  : 192
   Risk Prevalence     : 25.0%
 
   ── RESOURCE PLANNING (Innovation) ───────────────────────────────
-  Estimated Patients   : 25
-  Hospital Beds Required: 8
-  Staffing Requirement : 3 Doctors/Specialists
-  Financial Impact    : $40,000 (USD)
-  Operational Duration : 16 Plan Days
+  Estimated Patients   : 192
+  Hospital Beds Required: 58
+  Staffing Requirement : 13 Doctors/Specialists
+  Financial Impact    : $290,000 (USD)
+  Operational Duration : 116 Plan Days
 
   ── CONCLUSIONS ──────────────────────────────────────────────────
-  • Immediate allocation of 8 beds is recommended for pending cases.
-  • Staff schedules should account for 3 specialists.
+  • Immediate allocation of 58 beds is recommended for pending cases.
+  • Staff schedules should account for 13 specialists.
   • Patient risk rate of 25.0% indicates a 
     significant healthcare burden.
 

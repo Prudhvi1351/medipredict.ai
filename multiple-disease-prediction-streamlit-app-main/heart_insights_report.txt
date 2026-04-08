@@ -3,25 +3,25 @@
 ║        Autonomous Healthcare Insights: HEART              ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-  Analysis Date   : 2026-04-08 16:52:27
+  Analysis Date   : 2026-04-08 17:57:48
   Predictive Accuracy: 85.0%
 
   ── PREDICTION RESULTS ───────────────────────────────────────────
-  Total Screened       : 100
-  Predicted High-Risk  : 90
-  Risk Prevalence     : 90.0%
+  Total Screened       : 302
+  Predicted High-Risk  : 177
+  Risk Prevalence     : 58.6%
 
   ── RESOURCE PLANNING (Innovation) ───────────────────────────────
-  Estimated Patients   : 90
-  Hospital Beds Required: 72
-  Staffing Requirement : 25 Doctors/Specialists
-  Financial Impact    : $1,080,000 (USD)
-  Operational Duration : 360 Plan Days
+  Estimated Patients   : 177
+  Hospital Beds Required: 142
+  Staffing Requirement : 48 Doctors/Specialists
+  Financial Impact    : $2,130,000 (USD)
+  Operational Duration : 710 Plan Days
 
   ── CONCLUSIONS ──────────────────────────────────────────────────
-  • Immediate allocation of 72 beds is recommended for pending cases.
-  • Staff schedules should account for 25 specialists.
-  • Patient risk rate of 90.0% indicates a 
+  • Immediate allocation of 142 beds is recommended for pending cases.
+  • Staff schedules should account for 48 specialists.
+  • Patient risk rate of 58.6% indicates a 
     significant healthcare burden.
 
 ══════════════════════════════════════════════════════════════════
